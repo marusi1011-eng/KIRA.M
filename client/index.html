@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Подбор вакансий</title>
+  <style>
+    body { font-family: Arial; max-width: 900px; margin: auto; padding: 20px; }
+    .job { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+    .badge { display: inline-block; background: #eee; padding: 4px 8px; margin: 2px; border-radius: 5px; }
+    input[type="range"] { width: 100%; }
+  </style>
+</head>
+<body>
+
+<h1>Подбор вакансий по личным качествам</h1>
+
+<input id="search" placeholder="Поиск вакансии..." style="width:100%; padding:8px; margin-bottom:20px;" />
+
+<div id="qualities"></div>
+
+<h2>Вакансии</h2>
+<div id="jobs"></div>
+
+<script>
+const qualitiesList = [
+  "Коммуникабельность",
+  "Аналитическое мышление",
+  "Креативность",
+  "Стрессоустойчивость",
+  "Лидерство",
+  "Внимательность",
+  "Обучаемость",
+  "Ответственность"
+];
+
+const jobs = [
+  {
+    title: "Маркетолог",
+    qualities: { "Креативность": 0.9, "Коммуникабельность": 0.8 },
+    description: "Продвижение продуктов",
+    salary: "300-500k"
+  },
+  {
+    title: "Аналитик данных",
+    qualities: { "Аналитическое мышление": 1, "Внимательность": 0.9 },
+    description: "Работа с данными",
+    salary: "400-700k"
+  },
+  {
+    title: "Менеджер проектов",
+    qualities: { "Лидерство": 1, "Ответственность": 0.9 },
+    description: "Управление проектами",
+    salary: "500-900k"
+  }
+];
+
+let userQualities = {};
+
+function renderQualities() {
+  const container = document.getElementById("qualities");
+  container.innerHTML = "<h2>Оцени свои качества:</h2>";
+
+  qualitiesList.forEach(q => {
+    const div = document.createElement("div");
+
+    div.innerHTML = `
+      <label>${q}: <span id="val-${q}">0</span>%</label>
+      <input type="range" min="0" max="100" value="0" oninput="updateQuality('${q}', this.value)" />
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+function updateQuality(q, value) {
+  userQualities[q] = value / 100;
+  document.getElementById("val-" + q).innerText = value;
+  renderJobs();
+}
+
+function scoreJob(job) {
+  let score = 0;
+  let total = 0;
+
+  for (let q in job.qualities) {
+    const jobWeight = job.qualities[q];
+    const userWeight = userQualities[q] || 0;
+
+    score += Math.min(jobWeight, userWeight);
+    total += jobWeight;
+  }
+
+  return total ? score / total : 0;
+}
+
+function renderJobs() {
+  const container = document.getElementById("jobs");
+  const search = document.getElementById("search").value.toLowerCase();
+
+  const sorted = jobs
+    .map(j => ({ ...j, score: scoreJob(j) }))
+    .filter(j => j.title.toLowerCase().includes(search))
+    .sort((a, b) => b.score - a.score);
+
+  container.innerHTML = "";
+
+  sorted.forEach(job => {
+    const div = document.createElement("div");
+    div.className = "job";
+
+    div.innerHTML = `
+      <h3>${job.title} (${Math.round(job.score * 100)}%)</h3>
+      <p>${job.description}</p>
+      <p>💰 ${job.salary}</p>
+      <div>
+        ${Object.keys(job.qualities).map(q => `<span class="badge">${q}</span>`).join("")}
+      </div>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+document.getElementById("search").addEventListener("input", renderJobs);
+
+renderQualities();
+renderJobs();
+</script>
+
+</body>
+</html>
