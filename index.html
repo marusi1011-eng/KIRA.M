@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>JobMatch</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <h1>💼 JobMatch</h1>
+
+    <div id="auth">
+        <input id="email" placeholder="Email">
+        <input id="password" type="password" placeholder="Пароль">
+        <button onclick="register()">Регистрация</button>
+        <button onclick="login()">Вход</button>
+    </div>
+
+    <div id="profile" style="display:none;">
+
+        <h2>Твои качества</h2>
+
+        <input type="range" id="comm" min="1" max="10">
+        <input type="range" id="stress" min="1" max="10">
+        <input type="range" id="creative" min="1" max="10">
+        <input type="range" id="leader" min="1" max="10">
+        <input type="range" id="focus" min="1" max="10">
+
+        <button onclick="saveProfile()">Сохранить</button>
+        <button onclick="findJobs()">Найти работу</button>
+
+        <canvas id="chart"></canvas>
+
+        <div id="jobs"></div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
