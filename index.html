@@ -1,130 +1,143 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Подбор вакансий</title>
-  <style>
-    body { font-family: Arial; max-width: 900px; margin: auto; padding: 20px; }
-    .job { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
-    .badge { display: inline-block; background: #eee; padding: 4px 8px; margin: 2px; border-radius: 5px; }
-    input[type="range"] { width: 100%; }
-  </style>
+<meta charset="UTF-8">
+<title>JobMatch Cloud</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+
+<style>
+body {background:#0f172a;color:white;font-family:Arial;}
+.container {max-width:400px;margin:auto;padding:20px;}
+input,button{width:100%;padding:10px;margin:5px;border-radius:10px;border:none;}
+button{background:#22c55e;color:white;}
+.chat{height:150px;overflow:auto;background:#020617;padding:10px;}
+</style>
 </head>
+
 <body>
 
-<h1>Подбор вакансий по личным качествам</h1>
+<div class="container">
 
-<input id="search" placeholder="Поиск вакансии..." style="width:100%; padding:8px; margin-bottom:20px;" />
+<h2>💼 JobMatch Cloud</h2>
 
-<div id="qualities"></div>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
 
-<h2>Вакансии</h2>
+<button onclick="register()">Регистрация</button>
+<button onclick="login()">Вход</button>
+
+<div id="app" style="display:none;">
+
+<h3>Добавить вакансию</h3>
+<input id="jobTitle" placeholder="Название">
+<button onclick="addJob()">Добавить</button>
+
+<h3>Вакансии</h3>
 <div id="jobs"></div>
 
-<script>
-const qualitiesList = [
-  "Коммуникабельность",
-  "Аналитическое мышление",
-  "Креативность",
-  "Стрессоустойчивость",
-  "Лидерство",
-  "Внимательность",
-  "Обучаемость",
-  "Ответственность"
-];
+<h3>💬 Чат</h3>
+<div class="chat" id="chat"></div>
+<input id="msg">
+<button onclick="sendMsg()">Отправить</button>
 
-const jobs = [
-  {
-    title: "Маркетолог",
-    qualities: { "Креативность": 0.9, "Коммуникабельность": 0.8 },
-    description: "Продвижение продуктов",
-    salary: "200-300k"
-  },
-  {
-    title: "Аналитик данных",
-    qualities: { "Аналитическое мышление": 1, "Внимательность": 0.9 },
-    description: "Работа с данными",
-    salary: "400-700k"
-  },
-  {
-    title: "Менеджер проектов",
-    qualities: { "Лидерство": 1, "Ответственность": 0.9 },
-    description: "Управление проектами",
-    salary: "500-900k"
-  }
-];
+<h3>🤖 AI помощник</h3>
+<input id="aiInput" placeholder="Спроси AI">
+<button onclick="askAI()">Спросить</button>
+<div id="aiAnswer"></div>
 
-let userQualities = {};
+</div>
 
-function renderQualities() {
-  const container = document.getElementById("qualities");
-  container.innerHTML = "<h2>Оцени свои качества:</h2>";
+</div>
 
-  qualitiesList.forEach(q => {
-    const div = document.createElement("div");
+<script type="module">
 
-    div.innerHTML = `
-      <label>${q}: <span id="val-${q}">0</span>%</label>
-      <input type="range" min="0" max="100" value="0" oninput="updateQuality('${q}', this.value)" />
-    `;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    container.appendChild(div);
-  });
+// 🔥 ВСТАВЬ СВОЙ CONFIG
+const firebaseConfig = {
+  apiKey: "ТВОЙ",
+  authDomain: "ТВОЙ",
+  projectId: "ТВОЙ"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+// РЕГИСТРАЦИЯ
+window.register = () => {
+createUserWithEmailAndPassword(auth,email.value,password.value)
+.then(()=>alert("OK"));
 }
 
-function updateQuality(q, value) {
-  userQualities[q] = value / 100;
-  document.getElementById("val-" + q).innerText = value;
-  renderJobs();
+// ВХОД
+window.login = () => {
+signInWithEmailAndPassword(auth,email.value,password.value)
+.then(()=>{
+appDiv.style.display="block";
+loadJobs();
+loadChat();
+});
 }
 
-function scoreJob(job) {
-  let score = 0;
-  let total = 0;
-
-  for (let q in job.qualities) {
-    const jobWeight = job.qualities[q];
-    const userWeight = userQualities[q] || 0;
-
-    score += Math.min(jobWeight, userWeight);
-    total += jobWeight;
-  }
-
-  return total ? score / total : 0;
+// ВАКАНСИИ
+window.addJob = async () => {
+await addDoc(collection(db,"jobs"),{
+title:jobTitle.value
+});
 }
 
-function renderJobs() {
-  const container = document.getElementById("jobs");
-  const search = document.getElementById("search").value.toLowerCase();
-
-  const sorted = jobs
-    .map(j => ({ ...j, score: scoreJob(j) }))
-    .filter(j => j.title.toLowerCase().includes(search))
-    .sort((a, b) => b.score - a.score);
-
-  container.innerHTML = "";
-
-  sorted.forEach(job => {
-    const div = document.createElement("div");
-    div.className = "job";
-
-    div.innerHTML = `
-      <h3>${job.title} (${Math.round(job.score * 100)}%)</h3>
-      <p>${job.description}</p>
-      <p>💰 ${job.salary}</p>
-      <div>
-        ${Object.keys(job.qualities).map(q => `<span class="badge">${q}</span>`).join("")}
-      </div>
-    `;
-
-    container.appendChild(div);
-  });
+// ЧТЕНИЕ ВАКАНСИЙ
+function loadJobs(){
+onSnapshot(collection(db,"jobs"),snap=>{
+jobs.innerHTML="";
+snap.forEach(doc=>{
+jobs.innerHTML+=`<div>${doc.data().title}</div>`;
+});
+});
 }
 
-document.getElementById("search").addEventListener("input", renderJobs);
+// ЧАТ
+window.sendMsg = async () => {
+await addDoc(collection(db,"chat"),{
+text:msg.value,
+user:auth.currentUser.email
+});
+}
 
-renderQualities();
-renderJobs();
+// ЧТЕНИЕ ЧАТА
+function loadChat(){
+onSnapshot(collection(db,"chat"),snap=>{
+chat.innerHTML="";
+snap.forEach(doc=>{
+let m=doc.data();
+chat.innerHTML+=`<div>${m.user}: ${m.text}</div>`;
+});
+});
+}
+
+// AI (через API)
+window.askAI = async () => {
+let res = await fetch("https://api.openai.com/v1/chat/completions",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer ТВОЙ_API_KEY"
+},
+body:JSON.stringify({
+model:"gpt-4o-mini",
+messages:[{role:"user",content:aiInput.value}]
+})
+});
+let data = await res.json();
+aiAnswer.innerText = data.choices[0].message.content;
+}
+
 </script>
 
 </body>
